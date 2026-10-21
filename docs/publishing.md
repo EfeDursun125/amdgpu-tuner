@@ -23,4 +23,4 @@ The source tree includes its GPLv3 license, locked Cargo dependencies, vendored 
 
 The alternative source ZIP is generated with `python3 scripts/package-source.py`. Its checksum is in `dist/SHA256SUMS`; generated archives are intentionally excluded from the source history.
 
-For a GitHub Release, follow [AppImage packaging](appimage.md): generate the AppImage and matching source-with-dependencies ZIP, verify them and upload both together with the build-info and `SHA256SUMS`. The initial local binary requires glibc 2.43+; state that in the release description. `THIRD_PARTY.md` records bundled-component notices and provenance.
+For a GitHub Release, use the **AppImage release** Actions workflow via a matching `v*` tag, a deliberate `codex/release-*` branch push, or its manual Run workflow button. It builds and tests on Ubuntu 24.04, then publishes the AppImage, matching source-with-dependencies ZIP, build-info and `SHA256SUMS`. The exact glibc requirement is included in the release description. See [AppImage packaging](appimage.md) for local packaging; `THIRD_PARTY.md` records bundled-component notices and provenance.

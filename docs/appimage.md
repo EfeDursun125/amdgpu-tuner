@@ -17,13 +17,15 @@ When FUSE mounting is unavailable, use:
 ./amdgpu-tuner-0.1.0-x86_64.AppImage --appimage-extract-and-run
 ```
 
-**Compatibility:** the initial locally built release requires **glibc 2.43 or newer** because it was compiled on CachyOS with glibc 2.44. It is not compatible with Ubuntu 24.04's older glibc. Consult the adjacent `.build-info.txt` for each artifact; AppImage packaging does not lower a binary's glibc requirements. To support older distributions, build on the oldest supported desktop baseline and run the packaged artifact there before release. This repository does not claim such a baseline test has happened.
+**Compatibility:** the GitHub release workflow builds on Ubuntu 24.04 and tests the packaged application there with software OpenGL and X11/Xvfb. Consult the adjacent `.build-info.txt` for each artifact's exact glibc requirement. The earlier local CachyOS build requires glibc 2.43+ and is a separate artifact. AppImage packaging does not lower a binary's glibc requirements; compatibility with distributions older than the build baseline is not guaranteed.
 
 The launcher preserves the working directory and does not inject a private library search path into games launched through the application.
 
 If a separately installed AppImageLauncher intercepts execution, its integration dialog may move the file into `~/Applications`. For direct CLI testing, prefix the command with `APPIMAGELAUNCHER_DISABLE=1` to bypass that external integration.
 
 ## Build
+
+The `.github/workflows/release.yml` workflow builds, tests and publishes release assets when a `v*` tag or a `codex/release-*` branch is pushed. It can also be run manually from Actions. The tag must match the Cargo version. Use the release branch only when deliberately publishing that version; existing published releases are never overwritten. Build/test jobs have read-only repository access; only the final publishing job has write access.
 
 Use Linux x86_64 with the normal project build dependencies, Python 3.11+, `binutils` (`readelf`, `ldd`) and network access for the first tool download:
 

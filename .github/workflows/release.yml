@@ -1,0 +1,128 @@
+# SPDX-License-Identifier: GPL-3.0-only
+name: AppImage release
+on:
+  push:
+    tags: ['v*']
+    branches: ['codex/release-*']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: appimage-release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    outputs:
+      version: ${{ steps.package.outputs.version }}
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_BUILD_JOBS: "2"
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      SLINT_BACKEND: winit-femtovg
+      APPIMAGE_EXTRACT_AND_RUN: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libx11-dev libxcursor-dev libxi-dev libxrandr-dev libegl1-mesa-dev libgl1-mesa-dri desktop-file-utils python3-pil python3-gi gir1.2-glib-2.0 xvfb xauth
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+      - name: Verify and build
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo test --locked
+          cargo build --release --locked
+          python3 scripts/check-repository.py
+      - name: Package release assets
+        id: package
+        run: |
+          python3 scripts/package-appimage.py --binary target/release/amdgpu-tuner
+          python3 scripts/package-source.py --with-dependencies
+          python3 - <<'PY'
+          import os, re, tomllib
+          from pathlib import Path
+          version = tomllib.loads(Path('Cargo.toml').read_text())['package']['version']
+          assert re.fullmatch(r'\d+\.\d+\.\d+', version), 'Expected a stable numeric version'
+          if os.environ['GITHUB_REF_TYPE'] == 'tag':
+              assert os.environ['GITHUB_REF_NAME'] == f'v{version}', 'Tag and Cargo version differ'
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'version={version}\n')
+          info = Path(f'dist/amdgpu-tuner-{version}-x86_64.AppImage.build-info.txt').read_text()
+          requirement = info.splitlines()[1]
+          Path('dist/release-notes.md').write_text(
+              f'AMDGPU Tuner {version}: Mesa and RADV environment profiles with a Slint Material 3 interface.\n\n'
+              f'## Linux AppImage\n\n- {requirement}\n'
+              '- Built and tested on Ubuntu 24.04 with software OpenGL and X11 (Xvfb).\n'
+              '- Uses host desktop/OpenGL libraries and Mesa drivers; no GPU driver is bundled.\n'
+              '- Profiles and optional Vulkan layers are read from the host system.\n\n'
+              'Download the `.AppImage`, then run:\n\n```sh\n'
+              f'chmod +x amdgpu-tuner-{version}-x86_64.AppImage\n'
+              f'./amdgpu-tuner-{version}-x86_64.AppImage\n```\n\n'
+              'If FUSE mounting is unavailable, add `--appimage-extract-and-run`.\n\n'
+              'The source-with-dependencies ZIP includes corresponding GPLv3 project sources, '
+              'locked Rust dependency sources, upstream notices and offline Cargo configuration. '
+              'Use `SHA256SUMS` to verify downloads.\n\n'
+              f'Build commit: `{os.environ["GITHUB_SHA"]}`.\n')
+          PY
+      - name: Test the packaged executable and source archive
+        run: |
+          export AMDGPU_TUNER_BINARY="$PWD/dist/amdgpu-tuner-${{ steps.package.outputs.version }}-x86_64.AppImage"
+          python3 tests/cli.py
+          python3 tests/packaging.py
+          xvfb-run -a python3 tests/ui.py
+          xvfb-run -a python3 tests/layout.py
+          python3 - <<'PY'
+          import os, subprocess, tempfile, zipfile
+          from pathlib import Path
+          archive = next(Path('dist').glob('*-source-with-dependencies.zip'))
+          with zipfile.ZipFile(archive) as bundle, tempfile.TemporaryDirectory() as directory:
+              assert bundle.testzip() is None
+              bundle.extractall(directory)
+              source = next(Path(directory).glob('amdgpu-tuner-*-source-with-dependencies'))
+              subprocess.run(['cargo', 'metadata', '--locked', '--offline', '--format-version', '1'],
+                  cwd=source, env={**os.environ, 'CARGO_HOME': str(Path(directory) / 'empty-cargo-home')},
+                  stdout=subprocess.DEVNULL, check=True)
+          PY
+          (cd dist && sha256sum -c SHA256SUMS)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: appimage-release-assets
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+  publish:
+    needs: linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_VERSION: ${{ needs.linux.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: appimage-release-assets
+          path: dist
+      - name: Publish verified release assets
+        run: |
+          cd dist
+          sha256sum -c SHA256SUMS
+          tag="v${RELEASE_VERSION}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists; refusing to replace its assets."
+            exit 1
+          fi
+          gh release create "$tag" --target "$GITHUB_SHA" --title "AMDGPU Tuner $RELEASE_VERSION" --draft --notes-file release-notes.md \
+            ./*.AppImage ./*.build-info.txt ./*-source-with-dependencies.zip SHA256SUMS
+          gh release edit "$tag" --draft=false

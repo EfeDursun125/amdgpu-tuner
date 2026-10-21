@@ -36,14 +36,14 @@ This project does not install a graphics driver or the optional latency layer. V
 
 ### AppImage
 
-For an available x86_64 release, download the `.AppImage` asset, make it executable and run it:
+Download the `.AppImage` asset from [GitHub Releases](https://github.com/EfeDursun125/amdgpu-tuner/releases), make it executable and run it:
 
 ```sh
 chmod +x amdgpu-tuner-0.1.0-x86_64.AppImage
 ./amdgpu-tuner-0.1.0-x86_64.AppImage
 ```
 
-The initial locally built AppImage requires **glibc 2.43+** and host desktop/OpenGL libraries. It does not run on older glibc distributions such as Ubuntu 24.04. See [AppImage compatibility, building and release assets](docs/appimage.md), including the FUSE-free launch option.
+The release workflow builds and tests the AppImage on **Ubuntu 24.04**. Host desktop/OpenGL libraries are required; the exact glibc requirement is recorded in the release's `.build-info.txt`. Locally built packages can require newer glibc versions. See [AppImage compatibility, building and release assets](docs/appimage.md), including the FUSE-free launch option.
 
 ### Build from source
 

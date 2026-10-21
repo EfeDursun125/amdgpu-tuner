@@ -1,8 +1,4 @@
-<p align="center">
-  <img src="packaging/amdgpu-tuner.svg" width="96" height="96" alt="AMDGPU Tuner icon">
-</p>
-
-# AMDGPU Tuner
+<h1><img src="packaging/amdgpu-tuner.svg" width="40" height="40" align="middle" alt="AMDGPU Tuner icon"> AMDGPU Tuner</h1>
 
 A Linux desktop application for **Mesa and RADV environment profiles**, built with **Rust + Slint Material 3**. Read inherited values, create manual overrides, and launch applications with the profile you choose.
 

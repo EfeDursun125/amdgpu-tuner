@@ -1,0 +1,267 @@
+// SPDX-License-Identifier: GPL-3.0-only
+import { MaterialWindow, MaterialPalette, Switch, ScrollView, TextField } from "@material";
+export { MaterialPalette } from "@material";
+import { Metrics, ActionButton, SectionTitle } from "controls.slint";
+
+export struct SettingRow {
+    title: string,
+    variable: string,
+    description: string,
+    state: string,
+    source: string,
+    checked: bool,
+    known: bool,
+    manual: bool,
+    group: int,
+    available: bool,
+}
+
+component Label inherits Text {
+    color: MaterialPalette.on_surface;
+    font-size: 14px;
+    overflow: elide;
+    vertical-alignment: center;
+}
+component NavItem inherits Rectangle {
+    in property <string> label;
+    in property <image> icon;
+    in property <bool> active;
+    callback clicked;
+    height: 52px;
+    border-radius: Metrics.button-radius;
+    background: active ? MaterialPalette.secondary_container : touch.has-hover ? MaterialPalette.surface_container_high : transparent;
+    Image { x: 20px; y: (root.height - self.height) / 2; width: 24px; height: 24px; source: root.icon; image-fit: contain; colorize: root.active ? MaterialPalette.on_secondary_container : MaterialPalette.on_surface_variant; }
+    Label { x: 56px; y: 0px; width: root.width - 76px; height: root.height; text: root.label; font-size: 13px; font-weight: root.active ? 600 : 400; color: root.active ? MaterialPalette.on_secondary_container : MaterialPalette.on_surface_variant; }
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-action-default => { root.clicked(); }
+    touch := TouchArea { clicked => { root.clicked(); } mouse-cursor: pointer; }
+}
+component SettingCard inherits Rectangle {
+    in property <SettingRow> data;
+    callback toggle(bool);
+    callback inherit;
+    changed data => { control.checked = root.data.checked; }
+    height: content.min-height;
+    border-radius: Metrics.radius;
+    background: MaterialPalette.surface_container;
+    content := VerticalLayout {
+        padding: Metrics.inset; padding-top: 12px; spacing: 8px;
+        HorizontalLayout {
+            height: 40px; spacing: 16px;
+            Label { text: root.data.title; font-size: 17px; font-weight: 600; horizontal-stretch: 1; }
+            ActionButton { text: root.data.manual ? "Use system" : "System"; enabled: root.data.manual; clicked => { root.inherit(); } }
+            // Keep the switch alive for both known and unknown states.
+            Rectangle {
+                width: 52px; height: 40px;
+                control := Switch {
+                    y: 4px; width: 52px; height: 32px;
+                    visible: root.data.known;
+                    checked: root.data.checked;
+                    accessible-label: root.data.title;
+                    checked-state-changed(value) => { if value != root.data.checked { root.toggle(value); } }
+                }
+                Rectangle {
+                    y: 4px; width: 52px; height: 32px; border-radius: 16px;
+                    visible: !root.data.known;
+                    accessible-role: button;
+                    accessible-label: root.data.title + " · automatic, activate to enable";
+                    accessible-action-default => { root.toggle(true); }
+                    background: MaterialPalette.surface_container_highest;
+                    border-width: 1px; border-color: MaterialPalette.outline;
+                    Label { text: "?"; horizontal-alignment: center; color: MaterialPalette.on_surface_variant; }
+                    TouchArea { mouse-cursor: pointer; clicked => { root.toggle(true); } }
+                }
+            }
+        }
+        Label { text: root.data.description; color: MaterialPalette.on_surface_variant; wrap: word-wrap; font-size: 13px; min-height: max(20px, self.preferred-height); }
+        HorizontalLayout {
+            height: 24px; spacing: 8px;
+            Rectangle {
+                width: badge.preferred-width + 24px; height: 24px; border-radius: 8px;
+                background: root.data.manual ? MaterialPalette.primary_container : MaterialPalette.surface_container_highest;
+                badge := Label { text: root.data.manual ? "MANUAL" : "INHERITED"; font-size: 10px; font-weight: 600; horizontal-alignment: center; color: root.data.manual ? MaterialPalette.on_primary_container : MaterialPalette.on_surface_variant; }
+            }
+            Label { text: root.data.state; font-size: 12px; color: root.data.known && root.data.checked ? MaterialPalette.primary : MaterialPalette.on_surface_variant; }
+        }
+        Label { height: 16px; text: root.data.source; font-size: 11px; color: MaterialPalette.on_surface_variant; }
+    }
+}
+
+export component AppWindow inherits MaterialWindow {
+    title: "AMDGPU Tuner";
+    icon: @image-url("../packaging/amdgpu-tuner.svg");
+    preferred-width: 1120px; preferred-height: 900px;
+    min-width: 850px; min-height: 650px;
+    in property <string> system-font: "sans-serif";
+    default-font-family: root.system-font;
+    default-font-size: 14px;
+    in property <[SettingRow]> settings;
+    in property <string> hardware;
+    in property <string> theme-name;
+    in property <string> summary;
+    in property <string> steam-line;
+    in property <string> environment-report;
+    in-out property <string> status;
+    in property <bool> dirty;
+    in property <int> manual-count;
+    in-out property <int> page: 0;
+    in-out property <string> command;
+    in-out property <string> query;
+    out property <length> save-control-width: save-control.width;
+    out property <length> refresh-control-width: refresh-control.width;
+    pure callback matches(string, string, string) -> bool;
+    callback toggle-setting(int, bool);
+    callback inherit-setting(int);
+    callback reset-all;
+    callback refresh;
+    callback save-profile;
+    callback apply-session;
+    callback remove-session;
+    callback copy-steam;
+    callback launch-command(string);
+
+    HorizontalLayout {
+        spacing: 0px;
+        Rectangle {
+            width: 240px; background: MaterialPalette.surface_container_low;
+            VerticalLayout {
+                padding: 16px; spacing: 8px;
+                Rectangle {
+                    height: 80px;
+                    Image {
+                        x: 12px; y: 20px; width: 40px; height: 40px;
+                        source: @image-url("../packaging/amdgpu-tuner.svg");
+                        image-fit: contain;
+                    }
+                    Label { x: 56px; y: 20px; width: parent.width - 72px; height: 24px; text: "AMDGPU"; font-size: 19px; font-weight: 700; }
+                    Label { x: 56px; y: 44px; width: parent.width - 72px; height: 16px; text: "T U N E R"; font-size: 10px; color: MaterialPalette.on_surface_variant; }
+                }
+                NavItem { label: "Tuning"; icon: @image-url("icons/tuning.svg"); active: root.page == 0; clicked => { root.page = 0; } }
+                NavItem { label: "Launch & apply"; icon: @image-url("icons/launch.svg"); active: root.page == 1; clicked => { root.page = 1; } }
+                NavItem { label: "System & sources"; icon: @image-url("icons/system.svg"); active: root.page == 2; clicked => { root.page = 2; } }
+                Rectangle { vertical-stretch: 1; }
+                Rectangle {
+                    height: 120px; border-radius: Metrics.radius; background: MaterialPalette.surface_container;
+                    VerticalLayout {
+                        padding: 20px; spacing: 8px;
+                        Label { text: "FOLLOWS YOUR SYSTEM"; font-size: 10px; font-weight: 600; color: MaterialPalette.primary; }
+                        Label { text: root.theme-name; font-size: 13px; wrap: word-wrap; }
+                        Label { text: "Material 3 · Rust + Slint"; font-size: 11px; color: MaterialPalette.on_surface_variant; }
+                    }
+                }
+            }
+        }
+        Rectangle {
+            background: MaterialPalette.surface;
+            VerticalLayout {
+                padding: Metrics.inset; spacing: Metrics.gap;
+                Rectangle {
+                    height: 64px;
+                    VerticalLayout {
+                        x: 0px; y: 2px; width: parent.width - refresh-control.width - 24px; height: 60px; spacing: 4px;
+                        Label { height: 36px; text: root.width < 1000px ? (root.page == 0 ? "Graphics tuning" : root.page == 1 ? "Launch & apply" : "System & sources") : (root.page == 0 ? "Your graphics. Your way." : root.page == 1 ? "Bring your profile to play." : "Know where values come from."); font-size: 28px; font-weight: 600; }
+                        Label { height: 20px; text: root.width < 1000px ? (root.page == 0 ? "Mesa & RADV settings" : root.page == 1 ? "Launch applications or apply a saved profile" : "Inherited values and installed layers") : (root.page == 0 ? "Mesa & RADV • Inherited values, transparent defaults" : root.page == 1 ? "Save overrides, launch a game, or apply them to a future session." : "Inherited process environment and installed layer manifests"); color: MaterialPalette.on_surface_variant; font-size: 12px; }
+                    }
+                    refresh-control := ActionButton { x: parent.width - self.width; y: (parent.height - self.height) / 2; text: "Refresh"; clicked => { root.refresh(); } }
+                }
+                if root.page == 0 : Rectangle {
+                    height: max(96px, hero-content.min-height); border-radius: Metrics.radius; background: MaterialPalette.primary_container;
+                    hero-content := HorizontalLayout {
+                        padding: Metrics.inset; spacing: 16px;
+                        VerticalLayout { spacing: 8px;
+                            Label { height: 24px; text: root.hardware; font-size: 17px; font-weight: 600; color: MaterialPalette.on_primary_container; }
+                            Label { text: root.summary; min-height: self.preferred-height; font-size: 12px; color: MaterialPalette.on_primary_container; wrap: word-wrap; }
+                        }
+                        Label { text: root.manual-count + ""; width: 42px; font-size: 32px; horizontal-alignment: right; color: MaterialPalette.on_primary_container; }
+                        Label { text: "manual\noverrides"; width: 58px; font-size: 11px; color: MaterialPalette.on_primary_container; }
+                    }
+                }
+                if root.page == 0 : TextField {
+                    height: 80px;
+                    label: "Search settings"; text <=> root.query;
+                    supporting-text: "? = automatic / unknown. Click to override; Use system resets.";
+                }
+                if root.page == 0 : ScrollView {
+                    vertical-stretch: 1;
+                    horizontal-scrollbar-policy: always-off;
+                    VerticalLayout {
+                        spacing: 0px;
+                        for setting[index] in root.settings : VerticalLayout {
+                            spacing: 0px;
+                            padding-bottom: setting.available && root.matches(setting.title, setting.variable, root.query) ? 12px : 0px;
+                            if root.query == "" && (index == 0 || index == 4 || index == 11) : Rectangle {
+                                height: 32px;
+                                Label {
+                                    x: Metrics.inset; y: 0px; width: parent.width - 2 * Metrics.inset; height: parent.height;
+                                    text: index == 0 ? "LATENCY & OPENGL" : index == 4 ? "RADV · VULKAN" : "EXPERIMENTAL";
+                                    font-size: 11px; font-weight: 600; color: MaterialPalette.primary;
+                                }
+                            }
+                            if setting.available && root.matches(setting.title, setting.variable, root.query) : SettingCard {
+                                data: setting;
+                                toggle(value) => { root.toggle-setting(index, value); }
+                                inherit => { root.inherit-setting(index); }
+                            }
+                        }
+                    }
+                }
+                if root.page == 1 : ScrollView {
+                    horizontal-scrollbar-policy: always-off;
+                    VerticalLayout {
+                        spacing: Metrics.gap;
+                        Rectangle {
+                            border-radius: Metrics.radius; background: MaterialPalette.surface_container; height: launch-content.min-height;
+                            launch-content := VerticalLayout { padding: Metrics.inset; spacing: Metrics.gap;
+                                SectionTitle { number: "01"; text: "Launch with this profile"; }
+                                TextField { height: 80px; text <=> root.command; label: "Command and arguments · e.g. vkcube"; supporting-text: "No shell is executed. Quote paths containing spaces."; accepted(text) => { root.launch-command(text); } }
+                                HorizontalLayout { height: 40px; Rectangle {} ActionButton { kind: 1; text: "Launch"; clicked => { root.launch-command(root.command); } } }
+                            }
+                        }
+                        Rectangle {
+                            border-radius: Metrics.radius; background: MaterialPalette.surface_container; height: steam-content.min-height;
+                            steam-content := VerticalLayout { padding: Metrics.inset; spacing: Metrics.gap;
+                                SectionTitle { number: "02"; text: "Steam launch options"; }
+                                TextField { height: 56px; text: root.steam-line; read-only: true; label: "Game → Properties → Launch options"; }
+                                HorizontalLayout { height: 40px; spacing: Metrics.gap; Label { text: "Only manual overrides are exported."; font-size: 12px; color: MaterialPalette.on_surface_variant; } ActionButton { kind: 3; text: "Copy"; clicked => { root.copy-steam(); } } }
+                            }
+                        }
+                        Rectangle {
+                            border-radius: Metrics.radius; background: MaterialPalette.surface_container; height: session-content.min-height;
+                            session-content := VerticalLayout { padding: Metrics.inset; spacing: Metrics.gap;
+                                SectionTitle { number: "03"; text: "Apply to your user session"; }
+                                Label { text: "Writes ~/.config/environment.d/90-amdgpu-tuner.conf for the next systemd user session. Desktop propagation depends on the session manager. Running games are unchanged. Use Launch above to try overrides immediately."; wrap: word-wrap; color: MaterialPalette.on_surface_variant; min-height: max(60px, self.preferred-height); }
+                                HorizontalLayout { height: 40px; spacing: Metrics.gap; ActionButton { kind: 2; text: "Remove session file"; clicked => { root.remove-session(); } } Rectangle {} ActionButton { kind: 1; text: "Apply to session"; clicked => { root.apply-session(); } } }
+                            }
+                        }
+                    }
+                }
+                if root.page == 2 : ScrollView {
+                    horizontal-scrollbar-policy: always-off;
+                    VerticalLayout { spacing: 16px;
+                        Rectangle {
+                            height: info-content.min-height; border-radius: Metrics.radius; background: MaterialPalette.primary_container;
+                            info-content := VerticalLayout { padding: Metrics.inset; spacing: 8px;
+                                Label { height: 28px; text: "Unset does not mean off"; font-size: 20px; color: MaterialPalette.on_primary_container; }
+                                Label { text: "Driver defaults, hardware, drirc and game profiles can affect behavior. Requesting a flag does not prove a feature is active."; wrap: word-wrap; color: MaterialPalette.on_primary_container; min-height: max(40px, self.preferred-height); }
+                            }
+                        }
+                        Rectangle {
+                            height: report.preferred-height + 2 * Metrics.inset;
+                            border-radius: Metrics.radius; background: MaterialPalette.surface_container;
+                            report := Text { x: Metrics.inset; y: Metrics.inset; width: parent.width - 2 * Metrics.inset; height: self.preferred-height; text: root.environment-report; wrap: word-wrap; color: MaterialPalette.on_surface_variant; font-size: 13px; }
+                        }
+                    }
+                }
+                Rectangle { height: 1px; background: MaterialPalette.outline_variant; }
+                HorizontalLayout {
+                    height: 40px; spacing: Metrics.gap;
+                    ActionButton { text: "Restore all to system"; enabled: root.manual-count > 0; clicked => { root.reset-all(); } }
+                    Label { text: root.dirty ? "Unsaved overrides" : root.manual-count == 0 ? "System values" : "Saved profile"; horizontal-stretch: 1; font-size: 12px; color: root.dirty ? MaterialPalette.primary : MaterialPalette.on_surface_variant; horizontal-alignment: center; }
+                    save-control := ActionButton { kind: 1; text: "Save profile"; clicked => { root.save-profile(); } }
+                }
+                Label { text: root.status; wrap: word-wrap; height: 36px; font-size: 12px; color: MaterialPalette.on_surface_variant; }
+            }
+        }
+    }
+}

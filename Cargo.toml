@@ -1,0 +1,17 @@
+[package]
+name = "amdgpu-tuner"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+license = "GPL-3.0-only"
+description = "System-aware Mesa and RADV environment profiles with a Material 3 interface"
+
+[dependencies]
+slint = { version = "=1.18.1", default-features = false, features = ["std", "backend-winit", "renderer-femtovg", "compat-1-2"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+shell-words = "1"
+png = "0.18"
+
+[build-dependencies]
+slint-build = "=1.18.1"

@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: GPL-3.0-only
+name: CI
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_BUILD_JOBS: "2"
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      SLINT_BACKEND: winit-femtovg
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libx11-dev libxcursor-dev libxi-dev libxrandr-dev libegl1-mesa-dev libgl1-mesa-dri desktop-file-utils librsvg2-bin python3-pil python3-gi gir1.2-glib-2.0 xvfb xauth
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+      - name: Formatting and lint
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --all-targets -- -D warnings
+      - name: Unit tests and build
+        run: |
+          cargo test --locked
+          cargo build --locked
+          cargo build --release --locked
+      - name: CLI, packaging and repository checks
+        run: |
+          python3 tests/cli.py
+          python3 tests/packaging.py
+          python3 scripts/check-repository.py
+          desktop-file-validate packaging/amdgpu-tuner.desktop
+          rsvg-convert packaging/amdgpu-tuner.svg -o /tmp/amdgpu-tuner-icon.png
+      - name: Rendered UI and animation checks
+        run: |
+          xvfb-run -a python3 tests/ui.py
+          xvfb-run -a python3 tests/layout.py
+      - name: Validate source bundle
+        run: python3 scripts/package-source.py

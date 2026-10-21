@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: GPL-3.0-only
+import { MaterialPalette, MaterialText, MaterialTypography, StateLayerArea, MaterialAnimations } from "@material";
+
+export global Metrics {
+    out property <length> inset: 24px;
+    out property <length> gap: 16px;
+    out property <length> radius: 20px;
+    out property <length> button-height: 40px;
+    out property <length> button-radius: 16px;
+}
+
+// One surface and one full-size text box keep all four button styles concentric.
+export component ActionButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> enabled: true;
+    // 0 = text, 1 = filled, 2 = outline, 3 = tonal.
+    in property <int> kind;
+    callback clicked;
+    width: max(64px, caption.preferred-width + 24px);
+    horizontal-stretch: 0;
+    height: Metrics.button-height;
+    border-radius: min(Metrics.button-radius, self.height / 2);
+    border-width: root.kind == 2 ? 1px : 0px;
+    border-color: root.enabled ? MaterialPalette.outline : MaterialPalette.outline_variant;
+    background: root.kind == 1 ? (root.enabled ? MaterialPalette.primary : MaterialPalette.on_surface.with_alpha(12%)) : root.kind == 3 ? MaterialPalette.secondary_container : transparent;
+    clip: true;
+    property <color> foreground: !root.enabled ? MaterialPalette.on_surface.with_alpha(38%) : root.kind == 1 ? MaterialPalette.on_primary : root.kind == 3 ? MaterialPalette.on_secondary_container : MaterialPalette.primary;
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-enabled: root.enabled;
+    accessible-action-default => { if root.enabled { root.clicked(); } }
+    forward-focus: interaction;
+    interaction := StateLayerArea {
+        x: 0px; y: 0px; width: root.width; height: root.height;
+        enabled: root.enabled;
+        color: root.foreground;
+        border-radius: root.border-radius;
+        display-background: root.enabled;
+        clicked => { root.clicked(); }
+    }
+    caption := MaterialText {
+        x: 12px; y: -1px; width: root.width - 24px; height: root.height;
+        text: root.text;
+        style: MaterialTypography.label_large;
+        color: root.foreground;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    animate background, border-color { duration: MaterialAnimations.opacity_duration; }
+}
+
+export component SectionTitle inherits Rectangle {
+    in property <string> number;
+    in property <string> text;
+    height: 28px;
+    Text { x: 0px; y: 0px; width: 28px; height: root.height; text: root.number; color: MaterialPalette.on_surface_variant; font-size: 18px; vertical-alignment: center; }
+    Text { x: 40px; y: 0px; width: root.width - 40px; height: root.height; text: root.text; color: MaterialPalette.on_surface; font-size: 18px; font-weight: 600; vertical-alignment: center; overflow: elide; }
+}

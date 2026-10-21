@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title description">
+  <title id="title">AMDGPU Tuner</title>
+  <desc id="description">A graphics processor with three tuning sliders, in warm coral on a dark rounded square.</desc>
+  <defs>
+    <linearGradient id="surface" x1="32" y1="16" x2="224" y2="240" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#44302d"/>
+      <stop offset="1" stop-color="#1a1414"/>
+    </linearGradient>
+    <linearGradient id="chip" x1="72" y1="72" x2="184" y2="184" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffb4a8"/>
+      <stop offset="1" stop-color="#ef806b"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#surface)"/>
+  <g fill="none" stroke="#ffb4a8" stroke-width="8" stroke-linecap="round">
+    <path d="M88 48v20m40-20v20m40-20v20M88 188v20m40-20v20m40-20v20M48 88h20m-20 40h20m-20 40h20M188 88h20m-20 40h20m-20 40h20"/>
+  </g>
+  <rect x="68" y="68" width="120" height="120" rx="24" fill="url(#chip)"/>
+  <rect x="78" y="78" width="100" height="100" rx="16" fill="#2c1e1c"/>
+  <g fill="none" stroke="#a65c50" stroke-width="6" stroke-linecap="round">
+    <path d="M100 96v64m28-64v64m28-64v64"/>
+  </g>
+  <g fill="#ffdbd4">
+    <rect x="88" y="106" width="24" height="12" rx="6"/>
+    <rect x="116" y="138" width="24" height="12" rx="6"/>
+    <rect x="144" y="114" width="24" height="12" rx="6"/>
+  </g>
+</svg>

@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[Desktop Entry]
+Type=Application
+Name=AMDGPU Tuner
+Comment=Mesa and RADV environment profiles
+Exec=amdgpu-tuner
+Icon=amdgpu-tuner
+Terminal=false
+Categories=Settings;HardwareSettings;
+Keywords=AMD;Mesa;RADV;Vulkan;

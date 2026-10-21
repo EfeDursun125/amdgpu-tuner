@@ -1,0 +1,9 @@
+* text=auto
+*.rs text eol=lf
+*.slint text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.svg text eol=lf
+*.desktop text eol=lf
+*.png binary

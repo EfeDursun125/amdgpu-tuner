@@ -1,0 +1,6 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-only
+# Do not change cwd: relative launch commands belong to the user's directory.
+# Do not export LD_LIBRARY_PATH: launched games must use their own/system libraries.
+appdir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec "$appdir/usr/bin/amdgpu-tuner" "$@"

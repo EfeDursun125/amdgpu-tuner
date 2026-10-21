@@ -1,0 +1,12 @@
+/target/
+/screenshots/
+/dist/
+__pycache__/
+*.py[cod]
+*.log
+.env
+.env.*
+!.env.example
+*.swp
+*~
+.DS_Store

@@ -1,5 +1,17 @@
 # Validation record
 
+## 0.1.1 layer-disable fix — 2026-10-22
+
+On the local CachyOS/KDE/Wayland system, formatting, Clippy, 12 unit tests, locked debug/release builds, CLI regression tests, UI/animation tests and all 13 layout renders passed. Launch and the generated Steam command were executed with both disable variables inherited as `1`, `0`, empty and an unrelated string; enabled child environments contained neither variable. Session export rejection preserves existing files and does not create partial files; layer-off and non-layer exports remain supported.
+
+Hardware fixtures cover integrated/discrete GPUs, 3D and other display classes, identical model names at different PCI addresses, audio/bridge exclusion and sysfs fallback. Real UI captures at 1120×1000 and 850×650 show both the local Navi 32 Radeon RX 7700 XT / 7800 XT and Granite Ridge Radeon 610M. The controls/animation smoke test uses a fixed hardware caption so host GPU count cannot invalidate pointer coordinates.
+
+`tests/vulkan-loader.py` additionally ran against the installed Mesa Anti-Lag and Korthos libraries using `vulkaninfo` and `VK_LOADER_DEBUG=layer`. For both Launch and Steam, both layers were inserted when enabled and absent when disabled, including inherited disable values `1`, `0` and empty. This verifies actual Loader insertion, not game extension use or latency improvement. Without `vulkaninfo` or either target layer, that optional test explicitly reports a skip.
+
+The original 0.1.0 environment-value tests did not check Loader insertion and incorrectly accepted `DISABLE_...=0`; 0.1.1 replaces that expectation with actual variable absence and executable Steam regressions.
+
+## Initial release checks
+
 Checked locally on **2026-10-21**, CachyOS Linux / KDE / Wayland, with **Rust 1.99.1** and Slint 1.18.1. The declared Rust floor is 1.92; this record does not claim a separate build with that compiler.
 
 | Check | Local result |

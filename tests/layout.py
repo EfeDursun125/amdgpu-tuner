@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (C) 2026 EfeDursun125
+# This file is part of AMDGPU Tuner; see NOTICE and LICENSE.
 # SPDX-License-Identifier: GPL-3.0-only
 """Render every page at three sizes and check button/card symmetry on actual pixels."""
 from concurrent.futures import ThreadPoolExecutor

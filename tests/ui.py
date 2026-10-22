@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (C) 2026 EfeDursun125
+# This file is part of AMDGPU Tuner; see NOTICE and LICENSE.
 # SPDX-License-Identifier: GPL-3.0-only
 """Requires a graphical Linux session. Uses disposable profiles and synthetic pointer events."""
 import os

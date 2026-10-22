@@ -1,4 +1,6 @@
 #!/bin/sh
+# Copyright (C) 2026 EfeDursun125
+# This file is part of AMDGPU Tuner; see NOTICE and LICENSE.
 # SPDX-License-Identifier: GPL-3.0-only
 # Do not change cwd: relative launch commands belong to the user's directory.
 # Do not export LD_LIBRARY_PATH: launched games must use their own/system libraries.

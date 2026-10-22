@@ -1,3 +1,5 @@
+// Copyright (C) 2026 EfeDursun125
+// This file is part of AMDGPU Tuner; see NOTICE and LICENSE.
 // SPDX-License-Identifier: GPL-3.0-only
 import { MaterialWindow, MaterialPalette, Switch, ScrollView, TextField } from "@material";
 export { MaterialPalette } from "@material";
@@ -46,23 +48,31 @@ component SettingCard inherits Rectangle {
     border-radius: Metrics.radius;
     background: MaterialPalette.surface_container;
     content := VerticalLayout {
-        padding: Metrics.inset; padding-top: 12px; spacing: 8px;
+        padding: Metrics.inset; padding-top: 16px; spacing: 8px;
         HorizontalLayout {
-            height: 40px; spacing: 16px;
-            Label { text: root.data.title; font-size: 17px; font-weight: 600; horizontal-stretch: 1; }
-            ActionButton { text: root.data.manual ? "Use system" : "System"; enabled: root.data.manual; clicked => { root.inherit(); } }
+            height: 32px; spacing: 16px;
+            Label { height: 32px; text: root.data.title; font-size: 17px; font-weight: 600; horizontal-stretch: 1; }
+            Rectangle {
+                width: inherit-button.width; height: 32px;
+                inherit-button := ActionButton {
+                    y: 6px; height: 32px;
+                    text: root.data.manual ? "Use system" : "System";
+                    enabled: root.data.manual;
+                    clicked => { root.inherit(); }
+                }
+            }
             // Keep the switch alive for both known and unknown states.
             Rectangle {
-                width: 52px; height: 40px;
+                width: 52px; height: 32px;
                 control := Switch {
-                    y: 4px; width: 52px; height: 32px;
+                    y: 6px; width: 52px; height: 32px;
                     visible: root.data.known;
                     checked: root.data.checked;
                     accessible-label: root.data.title;
                     checked-state-changed(value) => { if value != root.data.checked { root.toggle(value); } }
                 }
                 Rectangle {
-                    y: 4px; width: 52px; height: 32px; border-radius: 16px;
+                    y: 6px; width: 52px; height: 32px; border-radius: 16px;
                     visible: !root.data.known;
                     accessible-role: button;
                     accessible-label: root.data.title + " · automatic, activate to enable";
@@ -145,7 +155,7 @@ export component AppWindow inherits MaterialWindow {
                     height: 120px; border-radius: Metrics.radius; background: MaterialPalette.surface_container;
                     VerticalLayout {
                         padding: 20px; spacing: 8px;
-                        Label { text: "FOLLOWS YOUR SYSTEM"; font-size: 10px; font-weight: 600; color: MaterialPalette.primary; }
+                        Label { text: "Detected Theme:"; font-size: 10px; font-weight: 600; color: MaterialPalette.primary; }
                         Label { text: root.theme-name; font-size: 13px; wrap: word-wrap; }
                         Label { text: "Material 3 · Rust + Slint"; font-size: 11px; color: MaterialPalette.on_surface_variant; }
                     }
@@ -160,17 +170,18 @@ export component AppWindow inherits MaterialWindow {
                     height: 64px;
                     VerticalLayout {
                         x: 0px; y: 2px; width: parent.width - refresh-control.width - 24px; height: 60px; spacing: 4px;
-                        Label { height: 36px; text: root.width < 1000px ? (root.page == 0 ? "Graphics tuning" : root.page == 1 ? "Launch & apply" : "System & sources") : (root.page == 0 ? "Your graphics. Your way." : root.page == 1 ? "Bring your profile to play." : "Know where values come from."); font-size: 28px; font-weight: 600; }
+                        Label { height: 36px; text: root.page == 0 ? "Take control of Mesa & RADV." : root.width < 1000px ? (root.page == 1 ? "Launch & apply" : "System & sources") : (root.page == 1 ? "Bring your profile to play." : "Know where values come from."); font-size: root.width < 1000px ? 24px : 28px; font-weight: 600; }
                         Label { height: 20px; text: root.width < 1000px ? (root.page == 0 ? "Mesa & RADV settings" : root.page == 1 ? "Launch applications or apply a saved profile" : "Inherited values and installed layers") : (root.page == 0 ? "Mesa & RADV • Inherited values, transparent defaults" : root.page == 1 ? "Save overrides, launch a game, or apply them to a future session." : "Inherited process environment and installed layer manifests"); color: MaterialPalette.on_surface_variant; font-size: 12px; }
                     }
                     refresh-control := ActionButton { x: parent.width - self.width; y: (parent.height - self.height) / 2; text: "Refresh"; clicked => { root.refresh(); } }
                 }
                 if root.page == 0 : Rectangle {
-                    height: max(96px, hero-content.min-height); border-radius: Metrics.radius; background: MaterialPalette.primary_container;
+                    // Keep following cards on the 4px grid at 100/125/150% scale.
+                    height: max(96px, ceil(hero-content.min-height / 4px) * 4px); border-radius: Metrics.radius; background: MaterialPalette.primary_container;
                     hero-content := HorizontalLayout {
                         padding: Metrics.inset; spacing: 16px;
                         VerticalLayout { spacing: 8px;
-                            Label { height: 24px; text: root.hardware; font-size: 17px; font-weight: 600; color: MaterialPalette.on_primary_container; }
+                            Label { min-height: max(24px, self.preferred-height); text: root.hardware; wrap: word-wrap; font-size: 17px; font-weight: 600; color: MaterialPalette.on_primary_container; }
                             Label { text: root.summary; min-height: self.preferred-height; font-size: 12px; color: MaterialPalette.on_primary_container; wrap: word-wrap; }
                         }
                         Label { text: root.manual-count + ""; width: 42px; font-size: 32px; horizontal-alignment: right; color: MaterialPalette.on_primary_container; }
@@ -208,7 +219,9 @@ export component AppWindow inherits MaterialWindow {
                 }
                 if root.page == 1 : ScrollView {
                     horizontal-scrollbar-policy: always-off;
-                    VerticalLayout {
+                    content-height: max(self.visible-height, launch-page.min-height);
+                    launch-page := VerticalLayout {
+                        alignment: start;
                         spacing: Metrics.gap;
                         Rectangle {
                             border-radius: Metrics.radius; background: MaterialPalette.surface_container; height: launch-content.min-height;
@@ -230,7 +243,7 @@ export component AppWindow inherits MaterialWindow {
                             border-radius: Metrics.radius; background: MaterialPalette.surface_container; height: session-content.min-height;
                             session-content := VerticalLayout { padding: Metrics.inset; spacing: Metrics.gap;
                                 SectionTitle { number: "03"; text: "Apply to your user session"; }
-                                Label { text: "Writes ~/.config/environment.d/90-amdgpu-tuner.conf for the next systemd user session. Desktop propagation depends on the session manager. Running games are unchanged. Use Launch above to try overrides immediately."; wrap: word-wrap; color: MaterialPalette.on_surface_variant; min-height: max(60px, self.preferred-height); }
+                                Label { text: "Writes ~/.config/environment.d/90-amdgpu-tuner.conf for the next systemd user session. Enabled Vulkan layers require removing disable variables, which this file cannot do; use Launch or Steam options for those. Desktop propagation depends on the session manager. Running games are unchanged."; wrap: word-wrap; color: MaterialPalette.on_surface_variant; min-height: max(60px, self.preferred-height); }
                                 HorizontalLayout { height: 40px; spacing: Metrics.gap; ActionButton { kind: 2; text: "Remove session file"; clicked => { root.remove-session(); } } Rectangle {} ActionButton { kind: 1; text: "Apply to session"; clicked => { root.apply-session(); } } }
                             }
                         }

@@ -1,10 +1,14 @@
+// Copyright (C) 2026 EfeDursun125
+// This file is part of AMDGPU Tuner; see NOTICE and LICENSE.
 // SPDX-License-Identifier: GPL-3.0-only
 mod engine;
+mod hardware;
 mod theme;
 use engine::{Profile, SETTINGS, System};
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use std::{cell::RefCell, process::Command, rc::Rc};
 slint::include_modules!();
+const COPYRIGHT: &str = "Copyright (C) 2026 EfeDursun125";
 
 struct State {
     system: System,
@@ -99,33 +103,25 @@ fn update(ui: &AppWindow, state: &State) {
         }
     }
     report.push_str("SCOPE\nThese values describe the environment inherited by applications launched here. Other games or Steam may have a different environment. Refresh cannot change this process's inherited environment.\n\nTurning off RADV_PERFTEST / RADV_DEBUG / RADV_EXPERIMENTAL flags only removes the selected flag; it does not force off a driver default. Unknown flags are preserved.\n\nSOURCES\nhttps://docs.mesa3d.org/envvars.html\nhttps://material.slint.dev/getting-started/\n");
+    report.push_str(&format!("\nLICENSE\nAMDGPU Tuner · {COPYRIGHT}\nGNU GPL version 3 only · Without any warranty\nFull terms: amdgpu-tuner --license\n"));
     for note in &state.system.notes {
         report.push_str(&format!("\n{note}\n"));
     }
     ui.set_environment_report(report.trim_end().into());
 }
-fn hardware() -> String {
-    let pci = Command::new("lspci").args(["-d", "1002:"]).output().ok();
-    if let Some(output) = pci {
-        let lines = String::from_utf8_lossy(&output.stdout);
-        if let Some(line) = lines
-            .lines()
-            .find(|s| s.contains("VGA") || s.contains("Display controller"))
-        {
-            return line
-                .split_once(": ")
-                .map(|(_, s)| s)
-                .unwrap_or(line)
-                .replace("Advanced Micro Devices, Inc. [AMD/ATI] ", "");
-        }
-    }
-    "AMD Graphics · Mesa / RADV".into()
-}
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.first().is_some_and(|s| s == "--license") {
+        print!(
+            "{}\n{}",
+            include_str!("../NOTICE"),
+            include_str!("../LICENSE")
+        );
+        return Ok(());
+    }
     if args.first().is_some_and(|s| s == "--help") {
         println!(
-            "AMDGPU Tuner\n\n  amdgpu-tuner                    Open the Material 3 interface\n  amdgpu-tuner --inspect          Show environment and profile values\n  amdgpu-tuner --steam-line       Print Steam launch options\n  amdgpu-tuner --run PROGRAM ...  Launch with the saved profile\n  amdgpu-tuner --write-session    Write the saved profile to environment.d\n  amdgpu-tuner --remove-session   Remove the application session file\n  amdgpu-tuner --screenshot PATH [0|1|2]  Capture a page as PNG"
+            "AMDGPU Tuner\n{COPYRIGHT}\nGPL-3.0-only; without any warranty. Use --license for full terms.\n\n  amdgpu-tuner                    Open the Material 3 interface\n  amdgpu-tuner --license          Show copyright, license and warranty terms\n  amdgpu-tuner --inspect          Show environment and profile values\n  amdgpu-tuner --steam-line       Print Steam launch options\n  amdgpu-tuner --run PROGRAM ...  Launch with the saved profile\n  amdgpu-tuner --write-session    Write the saved profile to environment.d\n  amdgpu-tuner --remove-session   Remove the application session file\n  amdgpu-tuner --screenshot PATH [0|1|2]  Capture a page as PNG"
         );
         return Ok(());
     }
@@ -180,7 +176,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let q = query.to_lowercase();
         title.to_lowercase().contains(&q) || variable.to_lowercase().contains(&q)
     });
-    ui.set_hardware(hardware().into());
+    ui.set_hardware(hardware::detect().into());
     ui.set_status(
         "Ready. Save a profile, launch an application, or apply overrides to a future session."
             .into(),
@@ -258,8 +254,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     handler!(on_refresh, |window, state| {
         state.system = System::detect();
+        window.set_hardware(hardware::detect().into());
         theme::apply(&window);
-        window.set_status("Layer manifests and theme refreshed. The environment remains the one inherited at startup.".into());
+        window.set_status("GPU list, layer manifests and theme refreshed. The environment remains the one inherited at startup.".into());
     });
     handler!(on_save_profile, |window, state| {
         match state.profile.save(&engine::profile_path()) {
@@ -366,6 +363,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
     if args.first().is_some_and(|s| s == "--ui-smoke-test") {
+        // Keep pointer/animation fixtures independent of the host's GPU count.
+        ui.set_hardware("AMD Graphics · Mesa / RADV".into());
         ui.window().set_size(slint::LogicalSize::new(1120., 900.));
         let weak = ui.as_weak();
         let state = state.clone();

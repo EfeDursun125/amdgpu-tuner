@@ -1,13 +1,31 @@
+// Copyright (C) 2026 EfeDursun125
+// This file is part of AMDGPU Tuner; see NOTICE and LICENSE.
 // SPDX-License-Identifier: GPL-3.0-only
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     env, fs,
     path::{Path, PathBuf},
     process::Command,
 };
 
 pub type Environment = BTreeMap<String, String>;
+#[derive(Default)]
+pub struct EnvironmentChanges {
+    pub set: Environment,
+    pub unset: BTreeSet<String>,
+}
+impl EnvironmentChanges {
+    fn is_empty(&self) -> bool {
+        self.set.is_empty() && self.unset.is_empty()
+    }
+    fn apply(&self, command: &mut Command) {
+        for key in &self.unset {
+            command.env_remove(key);
+        }
+        command.envs(&self.set);
+    }
+}
 pub const LOW_LATENCY_LAYER: &str = "VK_LAYER_KORTHOS_low_latency";
 #[derive(Clone, Copy)]
 pub enum Kind {
@@ -352,7 +370,7 @@ impl System {
                 let disabled = layer
                     .disable
                     .iter()
-                    .find(|(k, v)| computed.get(*k) == Some(*v));
+                    .find(|(k, _)| computed.contains_key(*k));
                 let enabled = layer.enable.is_empty()
                     || layer.enable.iter().any(|(k, v)| computed.get(k) == Some(v));
                 let active = disabled.is_none() && enabled;
@@ -464,8 +482,8 @@ impl System {
         }
     }
     /// Only explicitly edited keys are emitted. Unrelated and unknown flags are retained.
-    pub fn changes(&self, profile: &Profile) -> Environment {
-        let mut output = Environment::new();
+    pub fn changes(&self, profile: &Profile) -> EnvironmentChanges {
+        let mut output = EnvironmentChanges::default();
         for setting in SETTINGS {
             if !self.setting_available(setting) {
                 continue;
@@ -476,15 +494,14 @@ impl System {
             let value = match setting.kind {
                 Kind::Layer(name) => {
                     if let Some(layer) = self.layers.iter().find(|l| l.name == name) {
-                        for (key, value) in &layer.disable {
-                            output.insert(
-                                key.clone(),
-                                if on {
-                                    if value == "0" { "1".into() } else { "0".into() }
-                                } else {
-                                    value.clone()
-                                },
-                            );
+                        for key in layer.disable.keys() {
+                            // Vulkan Loader checks presence, not the manifest's value.
+                            // Even an empty string can disable the layer.
+                            if on {
+                                output.unset.insert(key.clone());
+                            } else {
+                                output.set.insert(key.clone(), "1".into());
+                            }
                         }
                     }
                     if on { "1" } else { "0" }.into()
@@ -495,6 +512,7 @@ impl System {
                 Kind::Flag(flag) => {
                     let mut flags = tokens(
                         output
+                            .set
                             .get(setting.variable)
                             .or_else(|| self.environment.get(setting.variable))
                             .map(String::as_str)
@@ -507,13 +525,17 @@ impl System {
                     flags.join(",")
                 }
             };
-            output.insert(setting.variable.into(), value);
+            output.set.insert(setting.variable.into(), value);
         }
         output
     }
     pub fn compose(&self, profile: &Profile) -> Environment {
         let mut env = self.environment.clone();
-        env.extend(self.changes(profile));
+        let changes = self.changes(profile);
+        for key in changes.unset {
+            env.remove(&key);
+        }
+        env.extend(changes.set);
         env
     }
     pub fn steam_line(&self, profile: &Profile) -> String {
@@ -521,17 +543,28 @@ impl System {
         if changes.is_empty() {
             return "%command%".into();
         }
-        format!(
-            "env {} %command%",
+        let mut arguments = vec!["env".to_string()];
+        for key in &changes.unset {
+            arguments.push("-u".into());
+            arguments.push(shell_words::quote(key).into_owned());
+        }
+        arguments.extend(
             changes
+                .set
                 .iter()
-                .map(|(k, v)| format!("{k}={}", shell_words::quote(v)))
-                .collect::<Vec<_>>()
-                .join(" ")
-        )
+                .map(|(k, v)| shell_words::quote(&format!("{k}={v}")).into_owned()),
+        );
+        arguments.push("%command%".into());
+        arguments.join(" ")
     }
     pub fn write_session(&self, profile: &Profile, path: &Path) -> Result<(), String> {
         let changes = self.changes(profile);
+        if !changes.unset.is_empty() {
+            return Err(format!(
+                "environment.d cannot remove {}. Use Launch or Steam options. Session file unchanged.",
+                changes.unset.iter().cloned().collect::<Vec<_>>().join(", ")
+            ));
+        }
         if changes.is_empty() {
             return match fs::remove_file(path) {
                 Ok(()) => Ok(()),
@@ -540,7 +573,7 @@ impl System {
             };
         }
         let mut content = "# Managed by amdgpu-tuner. Applies to future systemd user sessions.\n# Restore with: amdgpu-tuner --remove-session\n".to_string();
-        for (key, value) in changes {
+        for (key, value) in changes.set {
             // environment.d expands $, so refuse values that cannot be preserved literally.
             if value.contains(['$', '\n', '\r', '\0']) {
                 return Err(format!(
@@ -560,11 +593,10 @@ impl System {
         argv: &[String],
     ) -> Result<std::process::Child, String> {
         let (program, args) = argv.split_first().ok_or("Enter a command to launch")?;
-        Command::new(program)
-            .args(args)
-            .envs(self.changes(profile))
-            .spawn()
-            .map_err(|e| format!("{program}: {e}"))
+        let mut command = Command::new(program);
+        command.args(args);
+        self.changes(profile).apply(&mut command);
+        command.spawn().map_err(|e| format!("{program}: {e}"))
     }
 }
 fn layer_library_present(manifest: &Path, library: &str, search: &[PathBuf]) -> bool {
@@ -615,7 +647,7 @@ mod tests {
             overrides: BTreeMap::from([("low-latency".into(), true)]),
         };
         assert!(!s.setting_available(&SETTINGS[1]));
-        assert!(!s.changes(&p).contains_key("LOW_LATENCY_LAYER"));
+        assert!(!s.changes(&p).set.contains_key("LOW_LATENCY_LAYER"));
         s.layers.push(Layer {
             name: LOW_LATENCY_LAYER.into(),
             path: "test.json".into(),
@@ -624,10 +656,10 @@ mod tests {
             disable: Environment::from([("DISABLE_LOW_LATENCY_LAYER".into(), "1".into())]),
         });
         assert!(!s.setting_available(&SETTINGS[1]));
-        assert!(!s.changes(&p).contains_key("LOW_LATENCY_LAYER"));
+        assert!(!s.changes(&p).set.contains_key("LOW_LATENCY_LAYER"));
         s.layers.last_mut().unwrap().library_present = true;
         assert!(s.setting_available(&SETTINGS[1]));
-        assert_eq!(s.changes(&p)["LOW_LATENCY_LAYER"], "1");
+        assert_eq!(s.changes(&p).set["LOW_LATENCY_LAYER"], "1");
     }
     #[test]
     fn manifest_library_paths_resolve_without_fallback_for_broken_absolute_paths() {
@@ -662,16 +694,20 @@ mod tests {
             s.read(&SETTINGS[0], &Profile::default()).checked,
             Some(true)
         );
-        s.environment
-            .insert("DISABLE_LAYER_MESA_ANTI_LAG".into(), "1".into());
-        assert_eq!(
-            s.read(&SETTINGS[0], &Profile::default()).checked,
-            Some(false)
-        );
         let p = Profile {
             overrides: BTreeMap::from([("anti-lag".into(), true)]),
         };
-        assert_eq!(s.read(&SETTINGS[0], &p).checked, Some(true));
+        for value in ["1", "0", "", "unexpected"] {
+            s.environment
+                .insert("DISABLE_LAYER_MESA_ANTI_LAG".into(), value.into());
+            assert_eq!(
+                s.read(&SETTINGS[0], &Profile::default()).checked,
+                Some(false),
+                "A defined disable variable must win, including {value:?}"
+            );
+            assert_eq!(s.read(&SETTINGS[0], &p).checked, Some(true));
+            assert!(!s.compose(&p).contains_key("DISABLE_LAYER_MESA_ANTI_LAG"));
+        }
     }
     #[test]
     fn unknown_is_not_false() {
@@ -696,10 +732,10 @@ mod tests {
             ]),
         };
         assert_eq!(
-            s.changes(&p)["RADV_PERFTEST"],
+            s.changes(&p).set["RADV_PERFTEST"],
             "future,sam,dccmsaa,nircache"
         );
-        assert!(!s.changes(&p).contains_key("mesa_glthread"));
+        assert!(!s.changes(&p).set.contains_key("mesa_glthread"));
     }
     #[test]
     fn reset_leaves_no_overrides() {
@@ -713,8 +749,50 @@ mod tests {
         let p = Profile {
             overrides: BTreeMap::from([("anti-lag".into(), true), ("vsync".into(), false)]),
         };
-        let output = Command::new("sh").args(["-c", "printf '%s:%s:%s' \"$ENABLE_LAYER_MESA_ANTI_LAG\" \"$DISABLE_LAYER_MESA_ANTI_LAG\" \"$vblank_mode\""]).envs(s.changes(&p)).output().unwrap();
-        assert_eq!(String::from_utf8_lossy(&output.stdout), "1:0:0");
+        for value in ["1", "0", ""] {
+            let mut command = Command::new("sh");
+            command
+                .args(["-c", "printf '%s:%s:%s' \"$ENABLE_LAYER_MESA_ANTI_LAG\" \"${DISABLE_LAYER_MESA_ANTI_LAG+present}\" \"$vblank_mode\""])
+                .env("DISABLE_LAYER_MESA_ANTI_LAG", value);
+            s.changes(&p).apply(&mut command);
+            let output = command.output().unwrap();
+            assert!(output.status.success());
+            assert_eq!(String::from_utf8_lossy(&output.stdout), "1::0");
+        }
+        assert!(
+            s.steam_line(&p)
+                .starts_with("env -u DISABLE_LAYER_MESA_ANTI_LAG ")
+        );
+    }
+    #[test]
+    fn session_rejects_unsets_without_touching_existing_file() {
+        let directory = env::temp_dir().join(format!("amdgpu-unset-test-{}", std::process::id()));
+        fs::create_dir_all(&directory).unwrap();
+        let path = directory.join("90.conf");
+        let s = system();
+        let p = Profile {
+            overrides: BTreeMap::from([("anti-lag".into(), true), ("glthread".into(), true)]),
+        };
+        assert!(
+            s.write_session(&p, &path)
+                .unwrap_err()
+                .contains("cannot remove")
+        );
+        assert!(!path.exists());
+        let old = "DISABLE_LAYER_MESA_ANTI_LAG=\"0\"\n";
+        fs::write(&path, old).unwrap();
+        assert!(s.write_session(&p, &path).is_err());
+        assert_eq!(fs::read_to_string(&path).unwrap(), old);
+        let off = Profile {
+            overrides: BTreeMap::from([("anti-lag".into(), false)]),
+        };
+        s.write_session(&off, &path).unwrap();
+        assert!(
+            fs::read_to_string(&path)
+                .unwrap()
+                .contains("DISABLE_LAYER_MESA_ANTI_LAG=\"1\"")
+        );
+        let _ = fs::remove_dir_all(directory);
     }
     #[test]
     fn session_file_round_trip_and_remove() {

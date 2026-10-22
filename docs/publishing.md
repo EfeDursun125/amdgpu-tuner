@@ -8,7 +8,7 @@ The source tree includes its GPLv3 license, locked Cargo dependencies, vendored 
    ```sh
    git add .
    git diff --cached --stat
-   git commit -m "Prepare AMDGPU Tuner 0.1.0"
+   git commit -m "Prepare AMDGPU Tuner 0.1.1"
    git branch -M main
    ```
 
@@ -23,4 +23,4 @@ The source tree includes its GPLv3 license, locked Cargo dependencies, vendored 
 
 The alternative source ZIP is generated with `python3 scripts/package-source.py`. Its checksum is in `dist/SHA256SUMS`; generated archives are intentionally excluded from the source history.
 
-For a GitHub Release, use the **AppImage release** Actions workflow via a matching `v*` tag, a deliberate `codex/release-*` branch push, or its manual Run workflow button. It builds and tests on Ubuntu 24.04, then publishes the AppImage, matching source-with-dependencies ZIP, build-info and `SHA256SUMS`. The exact glibc requirement is included in the release description. See [AppImage packaging](appimage.md) for local packaging; `THIRD_PARTY.md` records bundled-component notices and provenance.
+For a GitHub Release, use the **AppImage release** Actions workflow via a matching `v*` tag, a deliberate `appimage` branch push, or its manual Run workflow button. It builds and tests on Ubuntu 24.04, then publishes the AppImage, matching source-with-dependencies ZIP, build-info and `SHA256SUMS`. The exact glibc requirement is included in the release description. See [AppImage packaging](appimage.md) for local packaging; `THIRD_PARTY.md` records bundled-component notices and provenance.

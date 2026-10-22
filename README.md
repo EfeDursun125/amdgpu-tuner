@@ -3,11 +3,11 @@
 A Linux desktop application for **Mesa and RADV environment profiles**, built with **Rust + Slint Material 3**. Read inherited values, create manual overrides, and launch applications with the profile you choose.
 
 <p align="center">
-  <img src="docs/images/amdgpu-tuner-blue.png" width="49%" alt="AMDGPU Tuner running on KDE with a blue theme">
-  <img src="docs/images/amdgpu-tuner.png" width="49%" alt="AMDGPU Tuner running on KDE with a coral theme">
+  <img src="docs/images/amdgpu-tuner-blue.png" width="49%" alt="AMDGPU Tuner with the default Material theme">
+  <img src="docs/images/amdgpu-tuner.png" width="49%" alt="AMDGPU Tuner with the current KDE system theme">
 </p>
 
-*Actual application screenshots with blue and coral themes. Colors follow the host theme; available layers, inherited values and profiles depend on your system.*
+*Left: default Material theme. Right: the current KDE system theme. Both are actual application screenshots using the same example profile; available layers and hardware depend on your system.*
 
 ## Features
 
@@ -39,8 +39,8 @@ This project does not install a graphics driver or the optional latency layer. V
 Download the `.AppImage` asset from [GitHub Releases](https://github.com/EfeDursun125/amdgpu-tuner/releases), make it executable and run it:
 
 ```sh
-chmod +x amdgpu-tuner-0.1.0-x86_64.AppImage
-./amdgpu-tuner-0.1.0-x86_64.AppImage
+chmod +x amdgpu-tuner-0.1.1-x86_64.AppImage
+./amdgpu-tuner-0.1.1-x86_64.AppImage
 ```
 
 The release workflow builds and tests the AppImage on **Ubuntu 24.04**. Host desktop/OpenGL libraries are required; the exact glibc requirement is recorded in the release's `.build-info.txt`. Locally built packages can require newer glibc versions. See [AppImage compatibility, building and release assets](docs/appimage.md), including the FUSE-free launch option.
@@ -135,7 +135,7 @@ Log in again to clear values already inherited by running processes.
 1. Select an override with a switch. Click **?** to enable an unknown/default-controlled setting, then toggle it off if desired.
 2. **Use system** removes that override. **Save profile** saves your selections without changing the desktop's environment.
 3. On **Launch & apply**, launch a command immediately with your overrides or copy the **Steam launch options** into a game's properties.
-4. **Apply to session** writes a file for the next systemd user session. Desktop propagation depends on the session manager; running applications remain unchanged.
+4. **Apply to session** writes a file for the next systemd user session. Profiles enabling Vulkan layers require variable removal, which `environment.d` cannot express; use Launch or Steam options for them. Unsupported exports fail without changing the existing file. Desktop propagation depends on the session manager; running applications remain unchanged.
 
 Configuration uses `$XDG_CONFIG_HOME`, defaulting to `~/.config`:
 
@@ -152,6 +152,7 @@ See [values and defaults](docs/behavior.md) for exact semantics, and [additional
 
 ```sh
 amdgpu-tuner --help
+amdgpu-tuner --license
 amdgpu-tuner --inspect
 amdgpu-tuner --steam-line
 amdgpu-tuner --run vkcube
@@ -180,6 +181,8 @@ python3 tests/ui.py
 python3 tests/layout.py
 ```
 
+With `vulkaninfo` and an installed target layer, `python3 tests/vulkan-loader.py` additionally checks actual Vulkan Loader insertion through both Launch and Steam options, with inherited disable variables set to `1`, `0` and empty. This is a loader check, not an in-game latency benchmark.
+
 The tests cover environment inheritance, unknown defaults, optional-layer discovery, launch environments, session files, installer/uninstaller behavior, animation frames and rendered geometry. Test configuration lives in temporary directories. These are application checks, not in-game latency or performance benchmarks.
 
 The GitHub Actions workflow is configured to run build, lint, CLI, packaging and graphical checks on an Ubuntu runner. See the [local validation record](docs/validation.md) for completed checks. See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidance and [CHANGELOG.md](CHANGELOG.md) for release notes.
@@ -192,9 +195,11 @@ python3 scripts/package-source.py
 
 For the first GitHub upload, see [publishing instructions](docs/publishing.md).
 
-This creates `dist/amdgpu-tuner-0.1.0-source.zip` and updates `dist/SHA256SUMS`, including the README screenshot and bundled Material library, while excluding builds, private profiles and temporary captures. It is a source archive; Cargo downloads the locked Rust dependencies when building. For a binary release, run `python3 scripts/package-source.py --with-dependencies` to include the locked dependency sources and offline Cargo configuration.
+This creates `dist/amdgpu-tuner-0.1.1-source.zip` and updates `dist/SHA256SUMS`, including the README screenshot and bundled Material library, while excluding builds, private profiles and temporary captures. It is a source archive; Cargo downloads the locked Rust dependencies when building. For a binary release, run `python3 scripts/package-source.py --with-dependencies` to include the locked dependency sources and offline Cargo configuration.
 
 ## License and credits
+
+Copyright (C) 2026 EfeDursun125. See [NOTICE](NOTICE) for the application's copyright, license and warranty notice.
 
 **AMDGPU Tuner is licensed under GNU GPL version 3 only (`GPL-3.0-only`).** See [LICENSE](LICENSE).
 

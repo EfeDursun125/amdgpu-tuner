@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (C) 2026 EfeDursun125
+# This file is part of AMDGPU Tuner; see NOTICE and LICENSE.
 # SPDX-License-Identifier: GPL-3.0-only
 """Validate source-distribution metadata, licenses, local README media and vector assets."""
 from pathlib import Path
@@ -7,12 +9,15 @@ import tomllib
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
-required = ['LICENSE', 'Cargo.lock', 'README.md', 'THIRD_PARTY.md', 'CONTRIBUTING.md', 'CHANGELOG.md', '.gitattributes', '.github/workflows/ci.yml', 'docs/images/amdgpu-tuner.png', 'packaging/amdgpu-tuner.desktop', 'scripts/install.py']
+required = ['LICENSE', 'NOTICE', 'Cargo.lock', 'README.md', 'THIRD_PARTY.md', 'CONTRIBUTING.md', 'CHANGELOG.md', '.gitattributes', '.github/workflows/ci.yml', 'docs/images/amdgpu-tuner.png', 'packaging/amdgpu-tuner.desktop', 'scripts/install.py']
 for name in required:
     assert (ROOT / name).is_file(), f'Missing distribution file: {name}'
 package = tomllib.loads((ROOT / 'Cargo.toml').read_text())['package']
 assert package['license'] == 'GPL-3.0-only'
 assert package['rust-version'] == '1.92'
+notice = (ROOT / 'NOTICE').read_text()
+assert 'Copyright (C) 2026 EfeDursun125' in notice and 'version 3 only' in notice
+assert not any(placeholder in notice for placeholder in ['<year>', '<name of author>', '<program>'])
 license_text = (ROOT / 'LICENSE').read_text()
 assert 'GNU GENERAL PUBLIC LICENSE' in license_text and 'Version 3, 29 June 2007' in license_text
 assert 'MIT License' in (ROOT / 'vendor/material-1.1.0/LICENSE.md').read_text()

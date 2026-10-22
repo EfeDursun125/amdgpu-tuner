@@ -1,0 +1,21 @@
+AMDGPU Tuner — Mesa and RADV environment profile manager.
+Copyright (C) 2026 EfeDursun125
+
+AMDGPU Tuner is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 only.
+
+AMDGPU Tuner is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with AMDGPU Tuner. If not, see <https://www.gnu.org/licenses/>.
+The complete license text is included in LICENSE.
+
+Project and contact: https://github.com/EfeDursun125/amdgpu-tuner
+
+This notice applies to the project's own code and artwork. Third-party
+components retain their original copyright and license notices;
+see THIRD_PARTY.md and the licenses accompanying those components.

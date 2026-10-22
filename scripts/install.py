@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (C) 2026 EfeDursun125
+# This file is part of AMDGPU Tuner; see NOTICE and LICENSE.
 # SPDX-License-Identifier: GPL-3.0-only
 """Build/install for the current user, or uninstall only the installed application files."""
 import argparse
@@ -24,6 +26,7 @@ def destinations(prefix):
         'desktop': prefix / 'share/applications/amdgpu-tuner.desktop',
         'icon': prefix / 'share/icons/hicolor/scalable/apps/amdgpu-tuner.svg',
         'license': prefix / 'share/licenses/amdgpu-tuner/LICENSE',
+        'copyright': prefix / 'share/licenses/amdgpu-tuner/NOTICE',
         'material_license': prefix / 'share/licenses/amdgpu-tuner/Material-MIT.txt',
         'notices': prefix / 'share/licenses/amdgpu-tuner/THIRD_PARTY.md',
     }
@@ -71,6 +74,7 @@ def main():
         'binary': binary,
         'icon': ROOT / 'packaging/amdgpu-tuner.svg',
         'license': ROOT / 'LICENSE',
+        'copyright': ROOT / 'NOTICE',
         'material_license': ROOT / 'vendor/material-1.1.0/LICENSE.md',
         'notices': ROOT / 'THIRD_PARTY.md',
     }

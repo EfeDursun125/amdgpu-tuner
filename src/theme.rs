@@ -1,3 +1,5 @@
+// Copyright (C) 2026 EfeDursun125
+// This file is part of AMDGPU Tuner; see NOTICE and LICENSE.
 // SPDX-License-Identifier: GPL-3.0-only
 use crate::{AppWindow, MaterialPalette};
 use slint::{Color, ComponentHandle};

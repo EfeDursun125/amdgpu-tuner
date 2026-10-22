@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (C) 2026 EfeDursun125
+# This file is part of AMDGPU Tuner; see NOTICE and LICENSE.
 # SPDX-License-Identifier: GPL-3.0-only
 """Create a curated source ZIP without builds, private profiles or temporary screenshots."""
 import hashlib
@@ -17,7 +19,7 @@ version = tomllib.loads((ROOT / 'Cargo.toml').read_text())['package']['version']
 name = f'amdgpu-tuner-{version}-' + ('source-with-dependencies' if args.with_dependencies else 'source')
 output = ROOT / 'dist'
 output.mkdir(exist_ok=True)
-files = [ROOT / file for file in ['.gitignore', '.gitattributes', 'Cargo.toml', 'Cargo.lock', 'build.rs', 'LICENSE', 'README.md', 'THIRD_PARTY.md', 'CONTRIBUTING.md', 'CHANGELOG.md']]
+files = [ROOT / file for file in ['.gitignore', '.gitattributes', 'Cargo.toml', 'Cargo.lock', 'build.rs', 'LICENSE', 'NOTICE', 'README.md', 'THIRD_PARTY.md', 'CONTRIBUTING.md', 'CHANGELOG.md']]
 for directory in ['.github', 'docs', 'packaging', 'scripts', 'src', 'tests', 'ui', 'vendor']:
     files.extend(path for path in (ROOT / directory).rglob('*') if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc')
 archive = output / f'{name}.zip'

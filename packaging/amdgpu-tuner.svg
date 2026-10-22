@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (C) 2026 EfeDursun125 -->
+<!-- This file is part of AMDGPU Tuner; see NOTICE and LICENSE. -->
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title description">
   <title id="title">AMDGPU Tuner</title>

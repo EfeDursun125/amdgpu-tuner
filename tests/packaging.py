@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (C) 2026 EfeDursun125
+# This file is part of AMDGPU Tuner; see NOTICE and LICENSE.
 # SPDX-License-Identifier: GPL-3.0-only
 """Validate install/launch metadata/uninstall in temporary prefixes, including special characters."""
 import os
@@ -33,6 +35,7 @@ with tempfile.TemporaryDirectory(prefix='amdgpu-packaging-') as directory:
         assert icon.read_bytes() == (root / 'packaging/amdgpu-tuner.svg').read_bytes()
         licenses = prefix / 'share/licenses/amdgpu-tuner'
         assert (licenses / 'LICENSE').read_bytes() == (root / 'LICENSE').read_bytes()
+        assert (licenses / 'NOTICE').read_bytes() == (root / 'NOTICE').read_bytes()
         assert (licenses / 'Material-MIT.txt').read_bytes() == (root / 'vendor/material-1.1.0/LICENSE.md').read_bytes()
         assert (licenses / 'THIRD_PARTY.md').read_bytes() == (root / 'THIRD_PARTY.md').read_bytes()
         if shutil.which('desktop-file-validate'):
@@ -59,6 +62,7 @@ with tempfile.TemporaryDirectory(prefix='amdgpu-packaging-') as directory:
         unrelated.write_text('keep')
         subprocess.run([sys.executable, str(root / 'scripts/install.py'), '--prefix', str(prefix), '--uninstall'], env=env, check=True)
         assert not installed.exists() and not desktop.exists() and not icon.exists()
+        assert not (licenses / 'NOTICE').exists()
         assert unrelated.read_text() == 'keep'
         assert profile.read_text() == '{"overrides": {}}'
         assert session.read_text() == '# preserved by uninstall\n'

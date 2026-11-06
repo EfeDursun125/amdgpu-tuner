@@ -34,7 +34,7 @@ python3 scripts/package-appimage.py
 python3 scripts/package-source.py --with-dependencies
 ```
 
-For an already built release executable, pass `--binary target/release/amdgpu-tuner`. The script verifies the SHA-256 of both the official AppImage packaging tool and runtime. Tools are cached under `target/appimage-tools`. If the upstream continuous download changes, it deliberately stops until the new download is reviewed and its pinned digest updated.
+For an already built release executable, pass `--binary target/release/amdgpu-tuner`. The script downloads pinned releases of the official AppImage packaging tool and runtime, and verifies their SHA-256 digests. Tools are cached under `target/appimage-tools` by digest.
 
 Output goes to `dist/`:
 

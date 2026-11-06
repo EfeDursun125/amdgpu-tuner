@@ -39,8 +39,8 @@ This project does not install a graphics driver or the optional latency layer. V
 Download the `.AppImage` asset from [GitHub Releases](https://github.com/EfeDursun125/amdgpu-tuner/releases), make it executable and run it:
 
 ```sh
-chmod +x amdgpu-tuner-0.1.1-x86_64.AppImage
-./amdgpu-tuner-0.1.1-x86_64.AppImage
+chmod +x amdgpu-tuner-0.1.2-x86_64.AppImage
+./amdgpu-tuner-0.1.2-x86_64.AppImage
 ```
 
 The release workflow builds and tests the AppImage on **Ubuntu 24.04**. Host desktop/OpenGL libraries are required; the exact glibc requirement is recorded in the release's `.build-info.txt`. Locally built packages can require newer glibc versions. See [AppImage compatibility, building and release assets](docs/appimage.md), including the FUSE-free launch option.
@@ -195,7 +195,7 @@ python3 scripts/package-source.py
 
 For the first GitHub upload, see [publishing instructions](docs/publishing.md).
 
-This creates `dist/amdgpu-tuner-0.1.1-source.zip` and updates `dist/SHA256SUMS`, including the README screenshot and bundled Material library, while excluding builds, private profiles and temporary captures. It is a source archive; Cargo downloads the locked Rust dependencies when building. For a binary release, run `python3 scripts/package-source.py --with-dependencies` to include the locked dependency sources and offline Cargo configuration.
+This creates `dist/amdgpu-tuner-0.1.2-source.zip` and updates `dist/SHA256SUMS`, including the README screenshot and bundled Material library, while excluding builds, private profiles and temporary captures. It is a source archive; Cargo downloads the locked Rust dependencies when building. For a binary release, run `python3 scripts/package-source.py --with-dependencies` to include the locked dependency sources and offline Cargo configuration.
 
 ## License and credits
 

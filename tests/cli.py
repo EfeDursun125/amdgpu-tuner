@@ -68,6 +68,18 @@ with tempfile.TemporaryDirectory(prefix="amdgpu-tuner-cli-") as directory:
     session.write_text(old)
     assert subprocess.run([str(binary), "--write-session"], env=env, capture_output=True).returncode != 0
     assert session.read_text() == old
+    del env["DISABLE_LAYER_MESA_ANTI_LAG"]
+    del env["DISABLE_LOW_LATENCY_LAYER"]
+    for enabled in [{"anti-lag": True}, {"low-latency": True}, {"anti-lag": True, "low-latency": True}]:
+        path.write_text(json.dumps({"overrides": enabled}))
+        run("--write-session")
+        content = session.read_text()
+        assert "DISABLE_LAYER_MESA_ANTI_LAG" not in content
+        assert "DISABLE_LOW_LATENCY_LAYER" not in content
+        if enabled.get("anti-lag"):
+            assert 'ENABLE_LAYER_MESA_ANTI_LAG="1"' in content
+        if enabled.get("low-latency"):
+            assert 'LOW_LATENCY_LAYER="1"' in content
     # Turning layers off is representable in environment.d, and must still work.
     path.write_text(json.dumps({"overrides": {"anti-lag": False, "low-latency": False}}))
     disabled = json.loads(run("--run", *probe))

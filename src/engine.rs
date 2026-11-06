@@ -559,10 +559,16 @@ impl System {
     }
     pub fn write_session(&self, profile: &Profile, path: &Path) -> Result<(), String> {
         let changes = self.changes(profile);
-        if !changes.unset.is_empty() {
+        let blocked: Vec<_> = changes
+            .unset
+            .iter()
+            .filter(|key| self.environment.contains_key(*key))
+            .cloned()
+            .collect();
+        if !blocked.is_empty() {
             return Err(format!(
                 "environment.d cannot remove {}. Use Launch or Steam options. Session file unchanged.",
-                changes.unset.iter().cloned().collect::<Vec<_>>().join(", ")
+                blocked.join(", ")
             ));
         }
         if changes.is_empty() {
@@ -769,10 +775,17 @@ mod tests {
         let directory = env::temp_dir().join(format!("amdgpu-unset-test-{}", std::process::id()));
         fs::create_dir_all(&directory).unwrap();
         let path = directory.join("90.conf");
-        let s = system();
+        let mut s = system();
         let p = Profile {
             overrides: BTreeMap::from([("anti-lag".into(), true), ("glthread".into(), true)]),
         };
+        s.write_session(&p, &path).unwrap();
+        let content = fs::read_to_string(&path).unwrap();
+        assert!(content.contains("ENABLE_LAYER_MESA_ANTI_LAG=\"1\""));
+        assert!(!content.contains("DISABLE_LAYER_MESA_ANTI_LAG"));
+        fs::remove_file(&path).unwrap();
+        s.environment
+            .insert("DISABLE_LAYER_MESA_ANTI_LAG".into(), "".into());
         assert!(
             s.write_session(&p, &path)
                 .unwrap_err()

@@ -243,7 +243,7 @@ export component AppWindow inherits MaterialWindow {
                             border-radius: Metrics.radius; background: MaterialPalette.surface_container; height: session-content.min-height;
                             session-content := VerticalLayout { padding: Metrics.inset; spacing: Metrics.gap;
                                 SectionTitle { number: "03"; text: "Apply to your user session"; }
-                                Label { text: "Writes ~/.config/environment.d/90-amdgpu-tuner.conf for the next systemd user session. Enabled Vulkan layers require removing disable variables, which this file cannot do; use Launch or Steam options for those. Desktop propagation depends on the session manager. Running games are unchanged."; wrap: word-wrap; color: MaterialPalette.on_surface_variant; min-height: max(60px, self.preferred-height); }
+                                Label { text: "Writes ~/.config/environment.d/90-amdgpu-tuner.conf for the next systemd user session. If a Vulkan layer's disable variable is inherited, use Launch or Steam options to remove it. Desktop propagation depends on the session manager. Running games are unchanged."; wrap: word-wrap; color: MaterialPalette.on_surface_variant; min-height: max(60px, self.preferred-height); }
                                 HorizontalLayout { height: 40px; spacing: Metrics.gap; ActionButton { kind: 2; text: "Remove session file"; clicked => { root.remove-session(); } } Rectangle {} ActionButton { kind: 1; text: "Apply to session"; clicked => { root.apply-session(); } } }
                             }
                         }

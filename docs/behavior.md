@@ -19,7 +19,7 @@
 1. **Save profile** writes `$XDG_CONFIG_HOME/amdgpu-tuner/profile.json` only.
 2. **Launch & apply → Launch** starts a command immediately with the current overrides. Arguments are parsed without executing a shell.
 3. **Steam launch options** exports only manual overrides. Paste into a game's launch options.
-4. **Apply to session** writes `$XDG_CONFIG_HOME/environment.d/90-amdgpu-tuner.conf` for the next systemd user session. `environment.d` cannot unset inherited variables, so profiles that enable a Vulkan layer are rejected without modifying the existing file. Use Launch or Steam options for those profiles. Disabling layers and exporting other settings remain supported. Desktop propagation depends on the session manager. Running applications remain unchanged.
+4. **Apply to session** writes `$XDG_CONFIG_HOME/environment.d/90-amdgpu-tuner.conf` for the next systemd user session. `environment.d` cannot unset inherited variables, so enabling a Vulkan layer is rejected without modifying the existing file if its disable variable is present in the application environment. Use Launch or Steam options in that case. An absent disable variable does not prevent enabling the layer. Disabling layers and exporting other settings remain supported. Desktop propagation depends on the session manager. Running applications remain unchanged.
 5. **Remove session file** removes only the application's session file. Log in again to clear values already inherited by processes. Restoring every override and applying to the session also removes this file.
 
 `XDG_CONFIG_HOME` defaults to `~/.config`. An entirely inherited profile exports `%command%` for Steam. Saving the profile and writing the session file are separate actions.

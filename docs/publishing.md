@@ -8,7 +8,7 @@ The source tree includes its GPLv3 license, locked Cargo dependencies, vendored 
    ```sh
    git add .
    git diff --cached --stat
-   git commit -m "Prepare AMDGPU Tuner 0.1.1"
+   git commit -m "Prepare AMDGPU Tuner 0.1.2"
    git branch -M main
    ```
 

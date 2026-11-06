@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 — 2026-11-06
+
+- Allow Anti-Lag and Low Latency Layer session settings when their disable variables are absent, while protecting sessions that inherit a disable variable.
+- Update GitHub Actions artifact upload and download dependencies.
+
 ## 0.1.1 — 2026-10-22
 
 - Remove layer-disabling environment variables when enabling Anti-Lag or Korthos, including inherited `0` and empty values.
